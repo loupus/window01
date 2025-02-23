@@ -3,6 +3,7 @@
 #include "Window.hpp"
 
 bool cWindow::IsClsRegistered = false;
+int cWindow::RefCount = 0;
 
 
 // ========================================================================
@@ -84,7 +85,7 @@ void cWindow::Init()
 		CW_USEDEFAULT,			//  Y,
 		rc.right - rc.left,		// width
 		rc.bottom - rc.top,		// height
-		nullptr,				//  HWND      hWndParent,
+		nullptr,				// HWND      hWndParent,
 		nullptr,				// HMENU     hMenu,
 		hInst,					// HINSTANCE hInstance,
 		(void*)this				// LPVOID    lpParam
@@ -96,7 +97,6 @@ void cWindow::Init()
 		std::string ErrDesc = TranslateErrorCode(errCode);
 		throw cException(__LINE__, __FILE__, "CreateWindowEx failed", errCode, ErrDesc.c_str());
 	}
-
 
 	SetWindowLongPtr((HWND)m_hwnd, GWLP_USERDATA, (LONG_PTR)this);
 

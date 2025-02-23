@@ -39,7 +39,7 @@ int cApplication::Run()
 
 cWindow* cApplication::NewWindow()
 {
-	cWindow* nw = new cWindow(hInst,720,576);
+	cWindow* nw = new cWindow(hInst,640,480);
 	nw->Init();
 	return nw;
 }

@@ -27,12 +27,18 @@
 //};
 
 
+
+
+
 class cWindow
 {
+
 private:
-	const std::string wndClsName = "myWindowClass";
+	
 	const std::string wndName = "Hayrettin";
+	const std::string wndClsName = "myWindowClass";
 	static bool IsClsRegistered;
+	static int RefCount;
 	int width = 0;
 	int height = 0;
 	int leftOffSet = 100;
