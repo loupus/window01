@@ -1,32 +1,9 @@
-#pragma once
+﻿#pragma once
+#define WIN32_LEAN_AND_MEAN // todo windows header hazırla
 #include <string>
 #include <Windows.h>
 #include "RefRect.hpp"
 #include "cException.hpp"
-
-//class cHrException : public cException
-//{
-//private:
-//	
-//	 HRESULT hr;
-//
-//public:
-//	cHrException(int _line, const char* _file, HRESULT _hr)
-//		:cException(_line,_file,""), hr(_hr)
-//	{
-//		
-//	}
-//	cHrException(int _line, const char* _file, const char* _msg, HRESULT _hr)
-//		:cException(_line, _file, _msg), hr(_hr)
-//	{
-//
-//	}
-//	const char* what() const noexcept;
-//	HRESULT GetErrorCode() const noexcept;
-//	std::string GetErrorDescription() noexcept;
-//};
-
-
 
 
 
@@ -45,7 +22,7 @@ private:
 	int topOffSet = 100;
 
 protected:
-	void* m_hwnd = nullptr;
+	HWND  m_hwnd = nullptr;
 	HINSTANCE hInst = nullptr;
 
 public:
@@ -64,9 +41,11 @@ public:
 
 	void Init();
 	void* getHandle();
-	void setTitle(const char* title);
+	void setTitle(const std::string& title);
 	void registerCls();
-	static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+	LRESULT WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	static LRESULT CALLBACK MsgHandlerSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	static LRESULT CALLBACK MsgHandlerReDirect(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	std::string TranslateErrorCode(DWORD _errCode);
 	
 

@@ -7,7 +7,8 @@ int main()
 	cApplication app;
 	cWindow* mainWnd = app.NewWindow();
 	app.Run();
-
+	delete mainWnd;
+	mainWnd = nullptr;
 
 	return 0;
 }

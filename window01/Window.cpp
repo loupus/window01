@@ -1,3 +1,4 @@
+#include <iostream>
 #include <sstream>
 #include "cException.hpp"
 #include "Window.hpp"
@@ -33,18 +34,6 @@ std::string cHrException::GetErrorDescription() const noexcept
 
 // ========================================================================
 
-LRESULT CALLBACK cWindow::WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
-{
-	switch (msg)
-	{
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		return 0;
-
-	default:
-		return DefWindowProc(hwnd, msg, wparam, lparam);
-	}	
-}
 
 
 
@@ -56,7 +45,30 @@ cWindow::cWindow(HINSTANCE inst, int _width, int _height) : hInst(inst), width(_
 cWindow::~cWindow()
 {
 	// tek bir pencerede mi?
-	UnregisterClass(wndClsName.c_str(), hInst);
+	/*
+	https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-destroywindow
+
+	Destroys the specified window. The function sends WM_DESTROY and WM_NCDESTROY messages to the window to deactivate it and remove the keyboard focus from it. 
+	The function also destroys the window's menu, destroys timers, removes clipboard ownership, and breaks the clipboard viewer chain (if the window is at the top of the viewer chain).
+	If the specified window is a parent or owner window, DestroyWindow automatically destroys the associated child or owned windows when it destroys the parent or owner window. 
+	The function first destroys child or owned windows, and then it destroys the parent or owner window.
+	DestroyWindow also destroys modeless dialog boxes created by the CreateDialog function.
+	*/
+	BOOL back = DestroyWindow(m_hwnd);
+	if (!back)
+	{
+		DWORD errCode = GetLastError();
+		std::string ErrDesc = TranslateErrorCode(errCode);
+		//throw cException(__LINE__, __FILE__, "DestroyWindow failed", errCode, ErrDesc.c_str());
+		std::cout << __LINE__ << __FILE__ << "DestroyWindow failed" << " ErrCode:" << errCode << " ErrMsg:" << ErrDesc.c_str() << std::endl;
+	}
+	RefCount--;
+	if (RefCount == 0)
+	{
+		UnregisterClass(wndClsName.c_str(), hInst);
+		IsClsRegistered = false;
+	}
+		
 }
 
 void cWindow::Init()
@@ -66,7 +78,8 @@ void cWindow::Init()
 
 	RECT rc = { leftOffSet, topOffSet, width + leftOffSet, height + topOffSet }; // left, top, right, bottom
 	
-	 BOOL ret =   AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, false);
+	
+	 BOOL ret =   AdjustWindowRect(&rc, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, false);
 	 if (!ret)
 	 {
 		 DWORD errCode = GetLastError();
@@ -97,13 +110,55 @@ void cWindow::Init()
 		std::string ErrDesc = TranslateErrorCode(errCode);
 		throw cException(__LINE__, __FILE__, "CreateWindowEx failed", errCode, ErrDesc.c_str());
 	}
-
-	SetWindowLongPtr((HWND)m_hwnd, GWLP_USERDATA, (LONG_PTR)this);
+	RefCount++;
 
 	ShowWindow((HWND)m_hwnd, SW_SHOW);
+
+	/*https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatewindow*/
 	UpdateWindow((HWND)m_hwnd);
 }
 
+
+
+LRESULT CALLBACK cWindow::MsgHandlerSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	// use create parameter passed in from CreateWindow() to store window class pointer at WinAPI side
+	if (msg == WM_NCCREATE)
+	{
+		// extract ptr to window class from creation data
+		const CREATESTRUCTW* const pCreate = reinterpret_cast<CREATESTRUCTW*>(lParam);
+		cWindow* const pWnd = static_cast<cWindow*>(pCreate->lpCreateParams);
+		// set WinAPI-managed user data to store ptr to window instance
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWnd));
+		// set message proc to normal (non-setup) handler now that setup is finished
+		SetWindowLongPtr(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&cWindow::MsgHandlerReDirect));
+		// forward message to window instance handler
+		return pWnd->WndProc(hWnd, msg, wParam, lParam);
+	}
+	// if we get a message before the WM_NCCREATE message, handle with default handler
+	return DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+LRESULT CALLBACK cWindow::MsgHandlerReDirect(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	// retrieve ptr to window instance
+	cWindow* const pWnd = reinterpret_cast<cWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+	// forward message to window instance handler
+	return pWnd->WndProc(hWnd, msg, wParam, lParam);
+}
+
+LRESULT cWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+	case WM_CLOSE:
+		PostQuitMessage(0);
+		return 0;
+	}
+
+	return DefWindowProc(hWnd, msg, wParam, lParam);
+	
+}
 
 
 void* cWindow::getHandle()
@@ -111,9 +166,16 @@ void* cWindow::getHandle()
 	return m_hwnd;
 }
 
-void cWindow::setTitle(const char* title)
+void cWindow::setTitle(const std::string& title)
 {
-	::SetWindowText((HWND)m_hwnd, title);
+
+	BOOL back = SetWindowText(m_hwnd, title.c_str());
+	if (!back)
+	{
+		DWORD errCode = GetLastError();
+		std::string ErrDesc = TranslateErrorCode(errCode);
+		throw cException(__LINE__, __FILE__, "SetWindowText failed", errCode, ErrDesc.c_str());
+	}
 }
 
 void cWindow::registerCls()
@@ -121,7 +183,7 @@ void cWindow::registerCls()
 	WNDCLASSEX wc = {};
 	wc.cbSize = sizeof(WNDCLASSEX);
 	wc.lpszClassName = wndClsName.c_str();
-	wc.lpfnWndProc = &WndProc;
+	wc.lpfnWndProc = MsgHandlerSetup;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.hbrBackground = nullptr;
