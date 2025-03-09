@@ -1,9 +1,10 @@
 ﻿#pragma once
-#define WIN32_LEAN_AND_MEAN // todo windows header hazırla
+#include "hWindows.hpp"
 #include <string>
-#include <Windows.h>
+#include <memory>
 #include "RefRect.hpp"
 #include "cException.hpp"
+#include "Graphics.hpp"
 
 
 
@@ -20,6 +21,7 @@ private:
 	int height = 0;
 	int leftOffSet = 100;
 	int topOffSet = 100;
+	std::unique_ptr<cGraphics> pGfx = nullptr;
 
 protected:
 	HWND  m_hwnd = nullptr;
@@ -34,10 +36,8 @@ public:
 	cWindow& operator=(const cWindow&) = delete;
 
 
-	virtual void onCreate() {}
-	virtual void onUpdate() {}
-	virtual void onDestroy() {}
-	virtual void onSize(const  cRefRect& size) {}
+	void OnSize(int width, int height);
+
 
 	void Init();
 	void* getHandle();
@@ -47,7 +47,7 @@ public:
 	static LRESULT CALLBACK MsgHandlerSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK MsgHandlerReDirect(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	std::string TranslateErrorCode(DWORD _errCode);
-	
+	cGraphics& Gfx();
 
 	cRefRect getClientSize();
 	cRefRect getScreenSize();

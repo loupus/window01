@@ -131,6 +131,8 @@
   <ItemGroup>
     <ClInclude Include="cApplication.hpp" />
     <ClInclude Include="cException.hpp" />
+    <ClInclude Include="Graphics.hpp" />
+    <ClInclude Include="hWindows.hpp" />
     <ClInclude Include="Macros.hpp" />
     <ClInclude Include="RefRect.hpp" />
     <ClInclude Include="Window.hpp" />
@@ -138,6 +140,7 @@
   <ItemGroup>
     <ClCompile Include="cApplication.cpp" />
     <ClCompile Include="cException.cpp" />
+    <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>

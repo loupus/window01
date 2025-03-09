@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <sstream>
 #include "cException.hpp"
 #include "Window.hpp"
@@ -71,6 +71,8 @@ cWindow::~cWindow()
 		
 }
 
+
+
 void cWindow::Init()
 {
 	if (!IsClsRegistered)
@@ -116,6 +118,10 @@ void cWindow::Init()
 
 	/*https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatewindow*/
 	UpdateWindow((HWND)m_hwnd);
+
+	pGfx = std::make_unique<cGraphics>(m_hwnd);
+	if (pGfx)
+		pGfx->Init();
 }
 
 
@@ -151,9 +157,19 @@ LRESULT cWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
-	case WM_CLOSE:
-		PostQuitMessage(0);
-		return 0;
+		case WM_CLOSE:
+		{
+			PostQuitMessage(0);
+			return 0;
+		}
+		case WM_SIZE:
+		{
+			int width = LOWORD(lParam);  // Macro to get the low-order word.
+			int height = HIWORD(lParam); // Macro to get the high-order word.
+			OnSize(width, height);
+			break;
+		}
+		
 	}
 
 	return DefWindowProc(hWnd, msg, wParam, lParam);
@@ -205,8 +221,6 @@ void cWindow::registerCls()
 		IsClsRegistered = true;
 }
 
-
-
 cRefRect cWindow::getClientSize()
 {
 	RECT rc = {};
@@ -222,6 +236,70 @@ cRefRect cWindow::getScreenSize()
 	rc.right = ::GetSystemMetrics(SM_CXSCREEN);
 	rc.bottom = ::GetSystemMetrics(SM_CYSCREEN);
 	return cRefRect{ rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top };
+}
+
+void cWindow::OnSize(int width, int height)
+{
+	// oynama size oluyo zaten, window size değiştiğinde değiştirmek istediğin başka şey varsa onu yap, pencereyi elleme
+	std::cout << "width: " << width << " height:" << height << std::endl;
+	
+
+	//RECT rc = {};
+	////https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getclientrect
+	///*
+	//Retrieves the coordinates of a window's client area. 
+	//The client coordinates specify the upper-left and lower-right corners of the client area. 
+	//Because client coordinates are relative to the upper-left corner of a window's client area, 
+	//the coordinates of the upper-left corner are (0,0).
+	//*/
+	//BOOL back = ::GetClientRect(m_hwnd, &rc);
+	//if (!back)
+	//{
+	//	DWORD errCode = GetLastError();
+	//	std::string ErrDesc = TranslateErrorCode(errCode);
+	//	throw cException(__LINE__, __FILE__, "GetClientRect failed", errCode, ErrDesc.c_str());
+	//}
+
+	//std::cout << "left: " << rc.left << " top:" << rc.top  << " right:" << rc.right << " bottom:" << rc.bottom << std::endl;
+
+	///*
+	//* https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos
+	//* Changes the size, position, and Z order of a child, pop-up, or top-level window. 
+	//These windows are ordered according to their appearance on the screen. 
+	//The topmost window receives the highest rank and is the first window in the Z order.
+
+	// [in]           HWND hWnd,
+	// [in, optional] HWND hWndInsertAfter,
+	// [in]           int  X,
+ // 	 [in]           int  Y,
+	// [in]           int  cx,
+	// [in]           int  cy,
+	// [in]           UINT uFlags
+	//*/
+
+	//back = ::SetWindowPos(
+	//	m_hwnd
+	//	, NULL
+	//	, 0
+	//	, 0
+	//	, width
+	//	, height
+	//	, 0
+	//);
+	//if (!back)
+	//{
+	//	DWORD errCode = GetLastError();
+	//	std::string ErrDesc = TranslateErrorCode(errCode);
+	//	throw cException(__LINE__, __FILE__, "SetWindowPos failed", errCode, ErrDesc.c_str());
+	//}
+
+
+	/*
+	GetClientRect(hWnd, &magWindowRect);
+	// Resize the control to fill the window.
+	SetWindowPos(hwndMag, NULL,
+		magWindowRect.left, magWindowRect.top, magWindowRect.right, magWindowRect.bottom, 0);
+*/
 }
 
 std::string cWindow::TranslateErrorCode(DWORD _errCode) 
@@ -247,5 +325,10 @@ std::string cWindow::TranslateErrorCode(DWORD _errCode)
 	// free windows buffer
 	LocalFree(pMsgBuf);
 	return errorString;
+}
+
+cGraphics& cWindow::Gfx()
+{
+	return *pGfx;
 }
 
